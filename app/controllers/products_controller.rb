@@ -1,5 +1,8 @@
 class ProductsController < ApplicationController
   before_action :set_product, only: %i[ show edit update destroy ]
+  before_action :authenticate_user!
+  # before_action :check_farmer, only: [:create]
+  before_action :set_farmer, only: [:create]
 
   # GET /products or /products.json
   def index
@@ -22,15 +25,12 @@ class ProductsController < ApplicationController
   # POST /products or /products.json
   def create
     @product = Product.new(product_params)
+    @product.farmer_id = current_user.farmer.id
 
-    respond_to do |format|
-      if @product.save
-        format.html { redirect_to product_url(@product), notice: "Product was successfully created." }
-        format.json { render :show, status: :created, location: @product }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @product.errors, status: :unprocessable_entity }
-      end
+    if @product.save
+      redirect_to @product, notice: 'Product was successfully created.'
+    else
+      render :new
     end
   end
 
@@ -61,6 +61,15 @@ class ProductsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_product
       @product = Product.find(params[:id])
+    end
+
+    def check_farmer
+      unless current_user.farmer
+        redirect_to root_path, alert: 'You are not authorized to create a product'
+      end
+    end
+    def set_farmer
+      @product.farmer_id = current_user.farmer.id
     end
 
     # Only allow a list of trusted parameters through.
